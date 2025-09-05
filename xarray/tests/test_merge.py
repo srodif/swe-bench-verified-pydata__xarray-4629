@@ -109,6 +109,32 @@ class TestMergeFunction:
             expected.attrs = expected_attrs
             assert actual.identical(expected)
 
+    def test_merge_attrs_override_copy(self):
+        """Test that combine_attrs='override' returns a copy, not a reference."""
+        # Create datasets with conflicting attrs  
+        ds1 = xr.Dataset(attrs={'a': 'b', 'x': 1})
+        ds2 = xr.Dataset(attrs={'a': 'c', 'y': 2})
+        
+        # Merge with override - should get attrs from first dataset
+        merged = xr.merge([ds1, ds2], combine_attrs='override')
+        
+        # Verify the merged attrs are correct
+        assert merged.attrs == {'a': 'b', 'x': 1}
+        
+        # Verify that modifying merged attrs doesn't affect original
+        original_ds1_attrs = ds1.attrs.copy()
+        merged.attrs['a'] = 'modified'
+        merged.attrs['new'] = 'value'
+        
+        # Original dataset should be unchanged
+        assert ds1.attrs == original_ds1_attrs
+        assert ds1.attrs['a'] == 'b'
+        assert 'new' not in ds1.attrs
+        
+        # Merged dataset should be modified
+        assert merged.attrs['a'] == 'modified'
+        assert merged.attrs['new'] == 'value'
+
     def test_merge_dicts_simple(self):
         actual = xr.merge([{"foo": 0}, {"bar": "one"}, {"baz": 3.5}])
         expected = xr.Dataset({"foo": 0, "bar": "one", "baz": 3.5})
